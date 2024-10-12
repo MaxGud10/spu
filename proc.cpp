@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <math.h>
 
 #pragma GCC diagnostic ignored "-Wredundant-tags"
 
@@ -42,7 +43,7 @@ int main(void)
     FILE* file = fopen ("code_machine.txt", "r");
     assert (file); // TODO сделать через if
 
-    //int  num_column = 0; 
+
     for (int i = 0; i < 40; i++)
     {
         fscanf (file, "%d", &code[i]);
@@ -109,26 +110,81 @@ void interpret_command(struct Stack* stack, int code[]) // TODO найти ыш�
                 }
                 break;
 
-                
+                case 3: // sub
+                {
+                    Stack_Elem_t a = stack_pop(stack);
+                    Stack_Elem_t b = stack_pop(stack);
 
-            // case 3: // sub
-            //     {
-            //         Stack_Elem_t a = stack_pop(stack);
-            //         Stack_Elem_t b = stack_pop(stack);
+                    printf(">>> ip = %d, code[id] = %d: I'm going to sub: a = %llu | b = %llu\n", ip, code[ip], a, b);
 
-            //         printf(">>> ip = %d, code[id] = %d: I'm going to sub: a = %d | b = %d\n", ip, code[ip], a, b);
+                    stack_push(stack, b - a);
 
-            //         stack_push(stack, b - a);
+                    printf("<<< stack->data[stack->size - 1] = %llu, size = %d, a - b = %llu - %llu = %llu\n\n", stack->data[stack->size - 1], stack->size, a, b, a - b);
 
-            //         printf("<<< stack->data[stack->size - 1] = %d, size = %d, a - b = %d - %d = %d\n\n", stack->data[stack->size - 1], stack->size, a, b, a - b);
+                    ip +=1;
+                    printf("ip = %d", ip);
+                    printf("sub // push(%llu - %llu)\n", b, a);
+                }
+                break;
 
-            //         ip +=1;
-            //         printf("ip = %d", ip);
-            //         printf("sub // push(%llu - %llu)\n", b, a);
-            //     }
-            //     break;
+            case 4: // mull
+            {
+                Stack_Elem_t a = stack_pop(stack);
+                Stack_Elem_t b = stack_pop(stack);
 
-            case 3: // output
+                stack_push(stack, a * b);
+
+                ip += 1;
+            }
+            break;
+
+            case 5: // div
+            {
+                Stack_Elem_t a = stack_pop(stack);
+                Stack_Elem_t b = stack_pop(stack);
+
+                if (a == 0)
+                {
+                    printf ("ERROR: Division by zero\n");
+                    ddlx = 0;
+                }
+
+                else
+                    stack_push (stack, b / a);
+
+                ip +=1;
+            }
+
+            case 6: // sqrt
+            {
+                Stack_Elem_t a = stack_pop (stack);
+                // if (a < 0) // [x] a - всегда беззнаковый
+                // {
+                //     printf ("ERROR: Square root of negative number\n");
+                //     ddlx = 0;
+                // }
+
+                //else
+                stack_push (stack, (Stack_Elem_t)sqrt(a));
+
+                ip +=1;
+            }
+
+            case 7: // sin
+            {
+                Stack_Elem_t a = stack_pop (stack);
+                stack_push (stack, (Stack_Elem_t)sin(a));
+                ip += 1;
+            }
+
+            case 8: // cos
+            {
+                Stack_Elem_t a = stack_pop (stack);
+                stack_push (stack, (Stack_Elem_t)cos(a));
+                ip +=1;
+            }
+
+            case 9: // output
                 {
                     Stack_Elem_t result = stack_pop(stack);
                     printf("out %llu\n", result);
@@ -137,13 +193,14 @@ void interpret_command(struct Stack* stack, int code[]) // TODO найти ыш�
                 }
                 break;
 
-            case 4: // halt
+            case 10: // halt
                 printf("hlt\n");
                 ddlx = 0;
                 break;
 
             default:
                 printf("ERROR: Invalid command %d\n", code[ip]);
+                ddlx = 0;
                 break;
         }
     }    
@@ -181,7 +238,7 @@ void dump_spu (struct Stack* stack, int ip, int code[], size_t size)
 
 int stack_ctor(struct Stack *stack, int capacity) 
 {
-    stack->data = (Stack_Elem_t *)calloc(capacity, sizeof(Stack_Elem_t));
+    stack->data = (Stack_Elem_t *) calloc (capacity, sizeof(Stack_Elem_t));
     if (!stack->data)
         return -1;
 

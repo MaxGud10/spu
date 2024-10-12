@@ -46,13 +46,13 @@ int read_assembler_file(char machine_code[])
 
         else if (strcmp (cmd, "out") == 0)
         {
-            machine_code[count] = 3;
+            machine_code[count] = 9;
             count++;
         }
 
         else if (strcmp (cmd, "hlt") == 0)
         {
-            machine_code[count] = 4;
+            machine_code[count] = 10;
             count++;
         }
 
