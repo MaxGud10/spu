@@ -1,6 +1,9 @@
+#include <TXLib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+
+#pragma GCC diagnostic ignored "-Wredundant-tags"
 
 #include "color.h"
 
@@ -19,7 +22,7 @@ struct Spu
 };
 
 
-void interpret_command(struct Stack* stack, int code[]);
+void interpret_command (struct Stack* stack, int code[]);
 void dump_spu (struct Stack* stack, int ip, int code[], size_t size);
 
 int stack_ctor (struct Stack *stack, int capacity);
@@ -35,10 +38,11 @@ int main(void)
 
     int code[40] = {};
 
-    FILE* file = fopen ("code.txt", "r");
+    // FILE* file = fopen ("code.txt", "r");
+    FILE* file = fopen ("code_machine.txt", "r");
     assert (file); // TODO сделать через if
 
-    int  num_column = 0; 
+    //int  num_column = 0; 
     for (int i = 0; i < 40; i++)
     {
         fscanf (file, "%d", &code[i]);
@@ -83,7 +87,7 @@ void interpret_command(struct Stack* stack, int code[]) // TODO найти ыш�
                 {
                     printf(">>> ip = %d, code[id] = %d, code[ip+1] = %d: I am going to push\n", ip, code[ip], code[ip + 1]);
                     stack_push (stack, code[ip + 1]);
-                    printf("<<< stack->data[stack->size - 1] = %d, size = %d\n\n", stack->data[stack->size - 1], stack->size);
+                    printf("<<< stack->data[stack->size - 1] = %llu, size = %d\n\n", stack->data[stack->size - 1], stack->size);
                     ip += 2;
                 }
                 break;
@@ -93,11 +97,11 @@ void interpret_command(struct Stack* stack, int code[]) // TODO найти ыш�
                     Stack_Elem_t a = stack_pop(stack);
                     Stack_Elem_t b = stack_pop(stack);
 
-                    printf(">>> ip = %d, code[id] = %d: I'm going to add: a = %d | b = %d\n", ip, code[ip], a, b);
+                    printf(">>> ip = %d, code[id] = %d: I'm going to add: a = %llu | b = %llu\n", ip, code[ip], a, b);
 
                     stack_push(stack, a + b);
 
-                    printf("<<< stack->data[stack->size - 1] = %d, size = %d, a + b = %d + %d = %d\n\n", stack->data[stack->size - 1], stack->size, a, b, a + b);
+                    printf("<<< stack->data[stack->size - 1] = %llu, size = %d, a + b = %llu + %llu = %llu\n\n", stack->data[stack->size - 1], stack->size, a, b, a + b);
 
                     ip += 1;
                     printf("    NEXT: ip = %d\n", ip);
@@ -150,12 +154,12 @@ void dump_spu (struct Stack* stack, int ip, int code[], size_t size)
     printf(RED"\n----------------------------------------------------------------------------------------------------------\n");
 
     printf(BLUE "code:");
-    for (int i = 0; i < size; i++)
-        printf(" %02d", i);
+    for (size_t i = 0; i < size; i++)
+        printf(" %02llu", i);
     
     printf("\n     ");
 
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < size; i++)
         printf(YELLOW " %02d", code[i]);
 
     printf("\n");
@@ -166,8 +170,8 @@ void dump_spu (struct Stack* stack, int ip, int code[], size_t size)
     printf(MAGENTA "      ^ ip = %d\n\n", ip);
 
     printf("stack: ");
-    for (int i = 0; i < stack->size + 1; i++) // size + 1
-        printf(CYAN "[%d]=" WHITE "%d ", i, stack->data[i]);
+    for (size_t i = 0; i < stack->size + 1; i++) // int i 
+        printf(CYAN "[%llu]=" WHITE "%llu ", i, stack->data[i]);
 
 
     printf(RED "\n----------------------------------------------------------------------------------------------------------" RESET);
