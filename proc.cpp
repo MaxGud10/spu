@@ -10,6 +10,20 @@
 
 typedef unsigned long long Stack_Elem_t;
 
+enum code_teams
+{
+    PUSH    = 1,
+    ADD     = 2,
+    SUB     = 3,
+    MULL    = 4,
+    DIV     = 5,
+    SQRT    = 6, 
+    SIN     = 7,
+    COS     = 8,
+    OUTPUT  = 9,
+    HLT     = 10
+};
+
 struct Stack
 {
     int size;
@@ -20,22 +34,24 @@ struct Stack
 struct Spu
 {
     int code[40];
+    int ip;
+    
 };
 
 
 void interpret_command (struct Stack* stack, int code[]);
-void dump_spu (struct Stack* stack, int ip, int code[], size_t size);
+void dump_spu          (struct Stack* stack, int ip, int code[], size_t size);
 
 int stack_ctor (struct Stack *stack, int capacity);
 void stack_dtor(struct Stack *stack);
-int stack_push(struct Stack *stack, Stack_Elem_t value);
-Stack_Elem_t stack_pop(struct Stack *stack);
-int stack_is_empty(struct Stack *stack);
+int stack_push (struct Stack *stack, Stack_Elem_t value);
+Stack_Elem_t stack_pop (struct Stack *stack);
+int stack_is_empty (struct Stack *stack);
 
 int main(void) 
 {
     struct Stack stack = {};
-    stack_ctor(&stack, 15);
+    stack_ctor (&stack, 15);
 
     int code[40] = {};
 
@@ -76,15 +92,15 @@ int main(void)
 void interpret_command(struct Stack* stack, int code[]) // TODO найти ышяу 
 {
     int ip = 0;
-    //for (;;)
     int ddlx = 1;
     while(ddlx == 1)
     {
+
         dump_spu (stack, ip, code, 35); 
 
         switch (code[ip]) 
         {
-            case 1: // push
+            case PUSH: // push
                 {
                     printf(">>> ip = %d, code[id] = %d, code[ip+1] = %d: I am going to push\n", ip, code[ip], code[ip + 1]);
                     stack_push (stack, code[ip + 1]);
@@ -93,7 +109,7 @@ void interpret_command(struct Stack* stack, int code[]) // TODO найти ыш�
                 }
                 break;
 
-            case 2: // add
+            case ADD: // add
                 {
                     Stack_Elem_t a = stack_pop(stack);
                     Stack_Elem_t b = stack_pop(stack);
@@ -110,7 +126,7 @@ void interpret_command(struct Stack* stack, int code[]) // TODO найти ыш�
                 }
                 break;
 
-                case 3: // sub
+                case SUB: // sub
                 {
                     Stack_Elem_t a = stack_pop(stack);
                     Stack_Elem_t b = stack_pop(stack);
@@ -127,7 +143,7 @@ void interpret_command(struct Stack* stack, int code[]) // TODO найти ыш�
                 }
                 break;
 
-            case 4: // mull
+            case MULL: // mull
             {
                 Stack_Elem_t a = stack_pop(stack);
                 Stack_Elem_t b = stack_pop(stack);
@@ -138,7 +154,7 @@ void interpret_command(struct Stack* stack, int code[]) // TODO найти ыш�
             }
             break;
 
-            case 5: // div
+            case DIV: // div
             {
                 Stack_Elem_t a = stack_pop(stack);
                 Stack_Elem_t b = stack_pop(stack);
@@ -154,8 +170,9 @@ void interpret_command(struct Stack* stack, int code[]) // TODO найти ыш�
 
                 ip +=1;
             }
+            break;
 
-            case 6: // sqrt
+            case SQRT: // sqrt
             {
                 Stack_Elem_t a = stack_pop (stack);
                 // if (a < 0) // [x] a - всегда беззнаковый
@@ -169,22 +186,25 @@ void interpret_command(struct Stack* stack, int code[]) // TODO найти ыш�
 
                 ip +=1;
             }
+            break;
 
-            case 7: // sin
+            case SIN: // sin
             {
                 Stack_Elem_t a = stack_pop (stack);
                 stack_push (stack, (Stack_Elem_t)sin(a));
                 ip += 1;
             }
+            break;
 
-            case 8: // cos
+            case COS: // cos
             {
                 Stack_Elem_t a = stack_pop (stack);
                 stack_push (stack, (Stack_Elem_t)cos(a));
                 ip +=1;
             }
+            break;
 
-            case 9: // output
+            case OUTPUT: // output
                 {
                     Stack_Elem_t result = stack_pop(stack);
                     printf("out %llu\n", result);
@@ -193,9 +213,11 @@ void interpret_command(struct Stack* stack, int code[]) // TODO найти ыш�
                 }
                 break;
 
-            case 10: // halt
-                printf("hlt\n");
-                ddlx = 0;
+            case HLT: // halt
+                {
+                    printf("hlt\n");
+                    ddlx = 0;
+                }
                 break;
 
             default:

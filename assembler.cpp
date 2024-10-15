@@ -3,6 +3,20 @@
 #include <string.h>
 #include <assert.h>
 
+enum code_teams
+{
+    PUSH    = 1,
+    ADD     = 2,
+    SUB     = 3,
+    MULL    = 4,
+    DIV     = 5,
+    SQRT    = 6, 
+    SIN     = 7,
+    COS     = 8,
+    OUTPUT  = 9,
+    HLT     = 10
+};
+
 int read_assembler_file(char machine_code[]);
 int write_assembler_file(char machine_code[], int count);
 
@@ -34,25 +48,61 @@ int read_assembler_file(char machine_code[])
         
         if (strcmp (cmd, "push") == 0)
         {
-            machine_code[count] = 1;
+            machine_code[count] = PUSH;
             count++;
         }
 
         else if (strcmp (cmd, "add") == 0)
         {
-            machine_code[count] = 2;
+            machine_code[count] = ADD;
+            count++;
+        }
+
+         else if (strcmp (cmd, "sub") == 0)
+        {
+            machine_code[count] = SUB;
+            count++;
+        }
+
+        else if (strcmp (cmd, "mull") == 0)
+        {
+            machine_code[count] = MULL;
+            count++;
+        }
+
+        else if (strcmp (cmd, "div") == 0)
+        {
+            machine_code[count] = DIV;
+            count++;
+        }
+
+        else if (strcmp (cmd, "sqrt") == 0)
+        {
+            machine_code[count] = SQRT;
+            count++;
+        }
+
+        else if (strcmp (cmd, "sin") == 0)
+        {
+            machine_code[count] = SIN;
+            count++;
+        }
+
+        else if (strcmp (cmd, "cos") == 0)
+        {
+            machine_code[count] = COS;
             count++;
         }
 
         else if (strcmp (cmd, "out") == 0)
         {
-            machine_code[count] = 9;
+            machine_code[count] = OUTPUT;
             count++;
         }
 
         else if (strcmp (cmd, "hlt") == 0)
         {
-            machine_code[count] = 10;
+            machine_code[count] = HLT;
             count++;
         }
 
