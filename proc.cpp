@@ -24,7 +24,9 @@ enum Commands // TODO сделать верификатор и палачей
     OUTPUT  = 10,
     HLT     = 11,
     PUSHR   = 12,
-    JB      = 13
+    JB      = 13, // JUMP
+    NOB     = 14,
+    JMP     = 15
 };
 
 enum Registers
@@ -269,6 +271,15 @@ void interpret_command (struct Stack* stack, struct Spu* processor) // TODO на
                     stack_push(stack, processor->registers[reg_num]);
 
                     processor->ip += 2;
+                }
+                break;
+
+            case JMP:
+                {
+                    // Stack_Elem_t a = stack_pop(stack);
+                    // Stack_Elem_t b = stack_pop(stack); 
+
+                    processor->ip = processor->code[processor->ip + 1];
                 }
                 break;
 
