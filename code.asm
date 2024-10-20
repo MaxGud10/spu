@@ -1,22 +1,28 @@
+push 0
+push 0
+pop ax 
+pop bx
+
+pushr ax 
+pushr ax
+mull 
+pushr bx
+add
+pop bx
+
+pushr ax 
 push 1
-push 2
-push 3
-push 4
-push 5
-push 6
-push 7
-push 8
-push 9
-push 10
 add
-add
-add
-add
-add
-add
-add
-add
-add
-add
+pop ax
+
+pushr bx
 out 
+
+push 6
+pushr ax
+jb 8
+
+pushr bx
+out 
+
 hlt 
