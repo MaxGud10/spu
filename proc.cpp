@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <math.h>
 
+#define 😂  
+
 #pragma GCC diagnostic ignored "-Wredundant-tags"
 
 #include "color.h"
@@ -62,7 +64,9 @@ void dump_spu          (struct Stack* stack, struct Spu* processor, size_t size)
 
 int filling_the_machine_code (struct Spu* processor);
 
-int get_arg (struct Spu* processor);
+int  get_arg         (struct Spu* processor);
+int* get_arg_pop     (struct Spu* processor);
+int* get_arg_pop_new (struct Spu* processor);
 
 int stack_ctor  (struct Stack *stack, int capacity);
 void stack_dtor (struct Stack *stack);
@@ -72,7 +76,7 @@ int stack_is_empty (struct Stack *stack);
 
 int main(void) 
 {
-    struct Stack stack = {};
+    struct Stack stack   = {};
     
     struct Spu processor = {};
 
@@ -83,6 +87,11 @@ int main(void)
     filling_the_machine_code (&processor);
 
     processor.registers = (int*) calloc (8, sizeof(int));
+    processor.registers[1] = 10; // для примера 
+    processor.registers[2] = 20;
+    processor.registers[3] = 30;
+    processor.registers[4] = 40;
+
 
     stack_ctor (&stack, 15); // TODO: числа голыми быть не должны
 
@@ -119,22 +128,25 @@ void interpret_command (struct Stack* stack, struct Spu* processor)
             case PUSH: // push
                 {
                     printf(">>> ip = %d, code[id] = %d, code[ip+1] = %d: I am going to push\n", ip, processor->code[processor->ip], processor->code[processor->ip + 1]);
-                    stack_push (stack, processor->code[processor->ip + 1]); // [x] - сейчас я могу изменить внутреннюю функцию push а что делать, когда я буду подключать свой стек. изменять там push или как ?
+                    //int ded_loh = get_arg_pop_new (processor);
+                    stack_push (stack, *get_arg_pop_new (processor)); // processor->code[processor->ip + 1]
                     printf("<<< stack->data[stack->size - 1] = %llu, size = %d\n\n", stack->data[stack->size - 1], stack->size);
-                    processor->ip += 2;
+                    //processor->ip += 2;
                 }
-                break;
+                break; 
 
             case POP:
                 {
                     Stack_Elem_t a = stack_pop(stack);
 
-                    
                     // [0]
-                    int reg_num = (processor->code[processor->ip + 1] - REG_BASE) / REG_STEP;
-                    processor->registers[reg_num]= (int) a; // брать номер регистра из машинного кода - 70 и делить на 10
+                    int reg_num = (processor->code[processor->ip + 2] - REG_BASE) / REG_STEP;
+                    int* addr = get_arg_pop_new (processor);
+                    *addr = (int) a;
+                    processor->registers[reg_num]= (int) a; 
 
-                    processor->ip += 2;
+
+                    //processor->ip += 2;
                 }
                 break;
 
@@ -310,21 +322,57 @@ int filling_the_machine_code (struct Spu* processor)
     return 0;
 }
 
-int* get_arg (struct Spu* processor)
+int get_arg (struct Spu* processor)
 {
     int op_code   = processor->code[processor->ip++];
     int arg_type  = processor->code[processor->ip++];
     int arg_value = 0;
 
-    if (arg_type & 1) { arg_value = processor->code[processor->ip]; }
+    if (arg_type & 1) { arg_value = processor->code[processor->ip++]; }
 
     if (arg_type & 2) { arg_value += processor->registers[processor->code[processor->ip++]]; }
 
     if (arg_type & 4) { arg_value = processor->ram[arg_value]; }
 
-     
-    return arg_value;
-}ччччччччччч
+    (void)op_code; // наплевали, что переменная не используется 
+    return arg_value; 
+}
+
+int* get_arg_pop (struct Spu* processor)
+{
+    int  op_code  = processor->code[processor->ip++];
+    int  arg_type = processor->code[processor->ip++];
+    int* arg_addr = NULL;
+
+    if (arg_type & 1) { arg_addr = &processor->code[processor->ip++]; }
+
+    if (arg_type & 2) { arg_addr = &processor->registers[processor->code[processor->ip++]]; }
+
+    if (arg_type & 4) { arg_addr = &processor->ram[*arg_addr]; }
+
+    (void)op_code; // наплевали, что переменная не используется 
+    return arg_addr;  
+} 
+
+int* get_arg_pop_new (struct Spu* processor)
+{
+    int  op_code   = processor->code[processor->ip++];
+    int  arg_type  = processor->code[processor->ip++];
+    int  arg_value = 0;
+    int* arg_addr  = NULL;
+
+    if (arg_type & 1) { arg_addr  = &processor->code[processor->ip]; 
+                        arg_value =  processor->code[processor->ip++]; }
+
+    if (arg_type & 2) { arg_addr   = &processor->registers[processor->code[processor->ip]];
+                        arg_value +=  processor->registers[processor->code[processor->ip++]]; }
+
+    if (arg_type & 4) { arg_addr = & processor->ram[arg_value];} // pop ax
+                                                                 // pop [ax + 2]
+
+    (void)op_code; // наплевали, что переменная не используется 
+    return arg_addr;  
+} 
 
 void dump_spu (struct Stack* stack, struct Spu* processor, size_t size)
 {
