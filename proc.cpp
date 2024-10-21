@@ -9,6 +9,7 @@
 #include "color.h"
 
 typedef unsigned long long Stack_Elem_t;
+// int const MAX
 
 enum Commands // TODO сделать верификатор и палачей 
 {
@@ -46,11 +47,12 @@ struct Stack // TODO добавить уже написанный стек. По
     Stack_Elem_t *data; 
 };
 
-struct Spu // [x] - не лучше ли написать CPU
+struct Spu 
 {
     int* code; // [40]
     int ip;
     int* registers;
+    int* ram;
 };
 
 
@@ -60,9 +62,11 @@ void dump_spu          (struct Stack* stack, struct Spu* processor, size_t size)
 
 int filling_the_machine_code (struct Spu* processor);
 
-int stack_ctor (struct Stack *stack, int capacity);
-void stack_dtor(struct Stack *stack);
-int stack_push (struct Stack *stack, Stack_Elem_t value);
+int get_arg (struct Spu* processor);
+
+int stack_ctor  (struct Stack *stack, int capacity);
+void stack_dtor (struct Stack *stack);
+int stack_push  (struct Stack *stack, Stack_Elem_t value);
 Stack_Elem_t stack_pop (struct Stack *stack);
 int stack_is_empty (struct Stack *stack);
 
@@ -74,7 +78,7 @@ int main(void)
 
     processor.ip = 0;
 
-    processor.code = (int*)calloc (40, sizeof(int)); // TODO: заказывать размер файла
+    processor.code = (int*) calloc (40, sizeof(int)); // TODO: заказывать размер файла
 
     filling_the_machine_code (&processor);
 
@@ -83,7 +87,8 @@ int main(void)
     stack_ctor (&stack, 15); // TODO: числа голыми быть не должны
 
     dump_spu (&stack, &processor, 35);
-    //return 0;
+
+    processor.ram = (int*) calloc (100, sizeof(int)); 
 
 
     // for (int i = 0; i < 40; i++)
@@ -100,9 +105,9 @@ int main(void)
     return 0;
 }
 
-void interpret_command (struct Stack* stack, struct Spu* processor) // TODO найти size 
+void interpret_command (struct Stack* stack, struct Spu* processor) 
 {
-    int ip = 0;
+    int ip   = 0;
     int ddlx = 1;
     while(ddlx == 1)
     {
@@ -268,7 +273,7 @@ void interpret_command (struct Stack* stack, struct Spu* processor) // TODO на
             case PUSHR:
                 {
                     int reg_num = (processor->code[processor->ip + 1] - REG_BASE) / REG_STEP;
-                    stack_push(stack, processor->registers[reg_num]);
+                    stack_push (stack, processor->registers[reg_num]);
 
                     processor->ip += 2;
                 }
@@ -276,9 +281,6 @@ void interpret_command (struct Stack* stack, struct Spu* processor) // TODO на
 
             case JMP:
                 {
-                    // Stack_Elem_t a = stack_pop(stack);
-                    // Stack_Elem_t b = stack_pop(stack); 
-
                     processor->ip = processor->code[processor->ip + 1];
                 }
                 break;
@@ -294,7 +296,10 @@ void interpret_command (struct Stack* stack, struct Spu* processor) // TODO на
 int filling_the_machine_code (struct Spu* processor)
 {
     FILE* file = fopen ("code_machine.txt", "r");
-    assert (file); // TODO сделать через if
+    if (file == NULL)
+    {
+        printf("\nFile with code_machine is correct\n");
+    }
 
 
     for (int i = 0; i < 40; i++)
@@ -304,6 +309,22 @@ int filling_the_machine_code (struct Spu* processor)
 
     return 0;
 }
+
+int* get_arg (struct Spu* processor)
+{
+    int op_code   = processor->code[processor->ip++];
+    int arg_type  = processor->code[processor->ip++];
+    int arg_value = 0;
+
+    if (arg_type & 1) { arg_value = processor->code[processor->ip]; }
+
+    if (arg_type & 2) { arg_value += processor->registers[processor->code[processor->ip++]]; }
+
+    if (arg_type & 4) { arg_value = processor->ram[arg_value]; }
+
+     
+    return arg_value;
+}ччччччччччч
 
 void dump_spu (struct Stack* stack, struct Spu* processor, size_t size)
 {

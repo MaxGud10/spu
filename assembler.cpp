@@ -188,9 +188,10 @@ int read_assembler_file (struct ASM* asm_info)
             compile_arg (asm_info, file_asm);
         }
 
-        else if (strcmp(cmd, "nob") == 0)
-        {
-         //   
+        else if (strcmp(cmd, "nob") == 0) // пустая функция
+        {   
+            asm_info->machine_code[asm_info->count] = NOB;
+            asm_info->count++;  
         }
 
         else if (strcmp(cmd, "jmp") == 0)
