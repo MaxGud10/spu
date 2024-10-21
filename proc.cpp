@@ -64,9 +64,7 @@ void dump_spu          (struct Stack* stack, struct Spu* processor, size_t size)
 
 int filling_the_machine_code (struct Spu* processor);
 
-int  get_arg         (struct Spu* processor);
-int* get_arg_pop     (struct Spu* processor);
-int* get_arg_pop_new (struct Spu* processor);
+int* get_arg (struct Spu* processor);
 
 int stack_ctor  (struct Stack *stack, int capacity);
 void stack_dtor (struct Stack *stack);
@@ -129,7 +127,7 @@ void interpret_command (struct Stack* stack, struct Spu* processor)
                 {
                     printf(">>> ip = %d, code[id] = %d, code[ip+1] = %d: I am going to push\n", ip, processor->code[processor->ip], processor->code[processor->ip + 1]);
                     //int ded_loh = get_arg_pop_new (processor);
-                    stack_push (stack, *get_arg_pop_new (processor)); // processor->code[processor->ip + 1]
+                    stack_push (stack, *get_arg (processor)); // processor->code[processor->ip + 1]
                     printf("<<< stack->data[stack->size - 1] = %llu, size = %d\n\n", stack->data[stack->size - 1], stack->size);
                     //processor->ip += 2;
                 }
@@ -141,7 +139,7 @@ void interpret_command (struct Stack* stack, struct Spu* processor)
 
                     // [0]
                     int reg_num = (processor->code[processor->ip + 2] - REG_BASE) / REG_STEP;
-                    int* addr = get_arg_pop_new (processor);
+                    int* addr = get_arg (processor);
                     *addr = (int) a;
                     processor->registers[reg_num]= (int) a; 
 
@@ -322,39 +320,7 @@ int filling_the_machine_code (struct Spu* processor)
     return 0;
 }
 
-int get_arg (struct Spu* processor)
-{
-    int op_code   = processor->code[processor->ip++];
-    int arg_type  = processor->code[processor->ip++];
-    int arg_value = 0;
-
-    if (arg_type & 1) { arg_value = processor->code[processor->ip++]; }
-
-    if (arg_type & 2) { arg_value += processor->registers[processor->code[processor->ip++]]; }
-
-    if (arg_type & 4) { arg_value = processor->ram[arg_value]; }
-
-    (void)op_code; // наплевали, что переменная не используется 
-    return arg_value; 
-}
-
-int* get_arg_pop (struct Spu* processor)
-{
-    int  op_code  = processor->code[processor->ip++];
-    int  arg_type = processor->code[processor->ip++];
-    int* arg_addr = NULL;
-
-    if (arg_type & 1) { arg_addr = &processor->code[processor->ip++]; }
-
-    if (arg_type & 2) { arg_addr = &processor->registers[processor->code[processor->ip++]]; }
-
-    if (arg_type & 4) { arg_addr = &processor->ram[*arg_addr]; }
-
-    (void)op_code; // наплевали, что переменная не используется 
-    return arg_addr;  
-} 
-
-int* get_arg_pop_new (struct Spu* processor)
+int* get_arg (struct Spu* processor)
 {
     int  op_code   = processor->code[processor->ip++];
     int  arg_type  = processor->code[processor->ip++];
