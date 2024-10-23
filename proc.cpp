@@ -15,21 +15,22 @@ typedef unsigned long long Stack_Elem_t;
 
 enum Commands // TODO сделать верификатор и палачей 
 {
-    PUSH    = 1,
-    POP     = 2,
-    ADD     = 3,
-    SUB     = 4,
-    MULL    = 5,
-    DIV     = 6,
-    SQRT    = 7, 
-    SIN     = 8,
-    COS     = 9,
-    OUTPUT  = 10,
-    HLT     = 11,
-    PUSHR   = 12,
-    JB      = 13, // JUMP
-    NOB     = 14,
-    JMP     = 15
+    PUSH          = 1,
+    POP           = 2,
+    ADD           = 3,
+    SUB           = 4,
+    MULL          = 5,
+    DIV           = 6,
+    SQRT          = 7, 
+    SIN           = 8,
+    COS           = 9,
+    OUTPUT        = 10,
+    HLT           = 11,
+    PUSHR         = 12,
+    JB            = 13, // JUMP
+    NOB           = 14,
+    JMP           = 15,
+    DED_SMESHARIK = 16
 };
 
 enum Registers
@@ -138,12 +139,11 @@ void interpret_command (struct Stack* stack, struct Spu* processor)
                     Stack_Elem_t a = stack_pop(stack);
 
                     // [0]
-                    int reg_num = (processor->code[processor->ip + 2] - REG_BASE) / REG_STEP;
+                    //int reg_num = (processor->code[processor->ip + 2] - REG_BASE) / REG_STEP;
                     int* addr = get_arg (processor);
                     *addr = (int) a;
-                    processor->registers[reg_num]= (int) a; 
 
-
+                    //processor->registers[reg_num]= (int) a; 
                     //processor->ip += 2;
                 }
                 break;
@@ -295,6 +295,26 @@ void interpret_command (struct Stack* stack, struct Spu* processor)
                 }
                 break;
 
+            case DED_SMESHARIK:
+                {
+                    for (int i = 0; i < *processor->ram; i++)
+                    {
+                        printf("%c", processor->ram[i]);
+                        if (i % 50 == 0) printf("\n");
+                    }
+
+                    printf("\n");
+                }
+                break;
+
+//  case CMD_DRAW:
+//     for (int i = 0; i < RamSize; i++) 
+//         {
+//         printf ("%c", proc->ram[i]);
+//         if (i % 50 == 0) printf ("\n");
+//         }
+//     printf ("\n");
+//     break;
             default:
                 printf("ERROR: Invalid command %d\n", processor->code[processor->ip]);
                 ddlx = 0;
@@ -311,7 +331,6 @@ int filling_the_machine_code (struct Spu* processor)
         printf("\nFile with code_machine is correct\n");
     }
 
-
     for (int i = 0; i < 40; i++)
         fscanf (file, "%d", &processor->code[i]);
 
@@ -322,6 +341,7 @@ int filling_the_machine_code (struct Spu* processor)
 
 int* get_arg (struct Spu* processor)
 {
+    printf("<<< ip = %d\n", processor->ip);
     int  op_code   = processor->code[processor->ip++];
     int  arg_type  = processor->code[processor->ip++];
     int  arg_value = 0;
@@ -333,8 +353,9 @@ int* get_arg (struct Spu* processor)
     if (arg_type & 2) { arg_addr   = &processor->registers[processor->code[processor->ip]];
                         arg_value +=  processor->registers[processor->code[processor->ip++]]; }
 
-    if (arg_type & 4) { arg_addr = & processor->ram[arg_value];} // pop ax
-                                                                 // pop [ax + 2]
+    if (arg_type & 4) { arg_addr = &processor->ram[arg_value];} // pop ax
+                                                                 // pop [ax + 2] 
+    printf(">>> ip = %d\n", processor->ip);
 
     (void)op_code; // наплевали, что переменная не используется 
     return arg_addr;  

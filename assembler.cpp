@@ -7,21 +7,22 @@
 
 enum Commands // TODO сделать верификатор и палачей 
 {
-    PUSH    = 1,
-    POP     = 2,
-    ADD     = 3,
-    SUB     = 4,
-    MULL    = 5,
-    DIV     = 6,
-    SQRT    = 7, 
-    SIN     = 8,
-    COS     = 9,
-    OUTPUT  = 10,
-    HLT     = 11,
-    PUSHR   = 12,
-    JB      = 13, // JUMP
-    NOB     = 14,
-    JMP     = 15
+    PUSH          = 1,
+    POP           = 2,
+    ADD           = 3,
+    SUB           = 4,
+    MULL          = 5,
+    DIV           = 6,
+    SQRT          = 7, 
+    SIN           = 8,
+    COS           = 9,
+    OUTPUT        = 10,
+    HLT           = 11,
+    PUSHR         = 12,
+    JB            = 13, // JUMP
+    NOB           = 14,
+    JMP           = 15,
+    DED_SMESHARIK = 16
 };
 
 enum Registers
@@ -62,6 +63,8 @@ int find_bracket_pluse (struct ASM* asm_info, char* cmd);
 int ctor_labels       (struct ASM* asm_info);
 int ctor_machine_code (struct ASM* asm_info);
 
+int do_circle (struct ASM* asm_info, char* buf);
+
 int do_fixup    (struct ASM* asm_info);
 
 int dump_asm       (struct ASM* info_asm, size_t size);
@@ -74,7 +77,7 @@ int main (void)
     ctor_labels       (&asm_info);
     ctor_machine_code (&asm_info);
 
-    read_assembler_file(&asm_info);
+    read_assembler_file (&asm_info);
 
     return 0;
 }
@@ -215,6 +218,14 @@ int read_assembler_file (struct ASM* asm_info)
             //compile_arg (asm_info, file_asm, cmd);
             compile_arg (asm_info, file_asm);
         }
+
+        else if (strcmp(cmd, "ded_smesharik") == 0)
+        {
+            asm_info->machine_code[asm_info->count] = DED_SMESHARIK;
+            asm_info->count++;
+
+            compile_arg (asm_info, file_asm);
+        }
     }
 
     do_fixup(asm_info);
@@ -226,6 +237,23 @@ int read_assembler_file (struct ASM* asm_info)
 
     return 0;
 }
+
+int do_circle (struct ASM* asm_info, char buf[])
+{
+    int x = 0;
+    asm_info->machine_code[asm_info->count++] ;
+    int y = 0;
+    if (x + y <= 100)
+    {
+        asm_info->machine_code[asm_info->count++] = '*';
+    }
+
+    else
+    {
+        asm_info->machine_code[asm_info->count++] = NOB; 
+    }
+    return 0;
+}    
 
 int ctor_labels (struct ASM* asm_info) // заполнение -1 весь массив labels 
 {
@@ -245,7 +273,7 @@ int ctor_machine_code (struct ASM* asm_info)
     return 0;
 }
 
-int dump_mach_code (struct ASM* asm_info, int size)
+int dump_mach_code (struct ASM* asm_info, int size) // для отладки // только машинные код 
 {
     printf("machine_code: ");
     for (int i = 0; i < size; i++)
@@ -421,6 +449,8 @@ int compile_arg (struct ASM* asm_info, FILE* file_asm)
             asm_info->fixup[asm_info->fixup_index++]; // переделать 
         }
     }
+
+    do_circle (asm_info, buf);
 
     //dump_asm(asm_info, 24);
     asm_info->count++;
