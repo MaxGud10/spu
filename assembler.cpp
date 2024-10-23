@@ -44,26 +44,35 @@ struct ASM
 {
     int  machine_code [100];// TODO: считать размер файла и заказать память
     int  count;
-    char str          [52];
+    char arg          [52];
+    //char cmd          [100];
     int  labels       [100];
-    struct FIXUP fixup[50]; // переименовать 
+    struct FIXUP fixup[50];  
     int  fixup_index;
 };
 
 int read_assembler_file  (struct ASM* asm_info);
 int write_assembler_file (struct ASM* info_asm);
 
+//int compile_arg (struct ASM* asm_info, FILE* file_asm, char* cmd);
 int compile_arg (struct ASM* asm_info, FILE* file_asm);
-int ctor_labels (struct ASM* asm_info);
+
+int find_bracket_pluse (struct ASM* asm_info, char* cmd);
+
+int ctor_labels       (struct ASM* asm_info);
+int ctor_machine_code (struct ASM* asm_info);
+
 int do_fixup    (struct ASM* asm_info);
 
-int dump_asm (struct ASM* info_asm, size_t size);
+int dump_asm       (struct ASM* info_asm, size_t size);
+int dump_mach_code (struct ASM* asm_info, int size);
 
 int main (void)
 {
     struct ASM asm_info = {};
 
-    ctor_labels (&asm_info);
+    ctor_labels       (&asm_info);
+    ctor_machine_code (&asm_info);
 
     read_assembler_file(&asm_info);
 
@@ -80,7 +89,7 @@ int read_assembler_file (struct ASM* asm_info)
     }
   
     asm_info->count = 0;
-    while (!feof(file_asm)) // TODO: лучше считать в буфер
+    while (!feof(file_asm))
     {
         char cmd[100] = ""; // TODO: константу
 
@@ -104,8 +113,9 @@ int read_assembler_file (struct ASM* asm_info)
             asm_info->machine_code[asm_info->count] = PUSH;
             asm_info->count++; 
             
-            //fscanf (file_asm, "%s", asm_info.str);
+            //fscanf (file_asm, "%s", asm_info.arg);
 
+            //compile_arg (asm_info, file_asm, cmd);
             compile_arg (asm_info, file_asm);
 
         }
@@ -115,6 +125,7 @@ int read_assembler_file (struct ASM* asm_info)
             asm_info->machine_code[asm_info->count] = POP;
             asm_info->count++;
 
+            //compile_arg (asm_info, file_asm, cmd);
             compile_arg (asm_info, file_asm);
         }
 
@@ -177,6 +188,7 @@ int read_assembler_file (struct ASM* asm_info)
             asm_info->machine_code[asm_info->count] = JB;
             asm_info->count++;
 
+            //compile_arg (asm_info, file_asm, cmd);
             compile_arg (asm_info, file_asm);
         }
 
@@ -185,6 +197,7 @@ int read_assembler_file (struct ASM* asm_info)
             asm_info->machine_code[asm_info->count] = PUSHR;
             asm_info->count++;
 
+            //compile_arg (asm_info, file_asm, cmd);
             compile_arg (asm_info, file_asm);
         }
 
@@ -199,6 +212,7 @@ int read_assembler_file (struct ASM* asm_info)
             asm_info->machine_code[asm_info->count] = JMP;
             asm_info->count++;
 
+            //compile_arg (asm_info, file_asm, cmd);
             compile_arg (asm_info, file_asm);
         }
     }
@@ -217,71 +231,285 @@ int ctor_labels (struct ASM* asm_info) // заполнение -1 весь ма�
 {
     int size = sizeof(asm_info->labels) / sizeof (asm_info->labels[0]);
     for (int i = 0; i < size; i++)
-        {
             asm_info->labels[i] = -1;
-        }
+
+    return 0;
+}
+
+int ctor_machine_code (struct ASM* asm_info)
+{
+    int size = sizeof(asm_info->machine_code) / sizeof (asm_info->machine_code[0]);
+    for (int i = 0; i < size; i++)
+        asm_info->machine_code[i] = -1;
+
+    return 0;
+}
+
+int dump_mach_code (struct ASM* asm_info, int size)
+{
+    printf("machine_code: ");
+    for (int i = 0; i < size; i++)
+        printf("%02d ", asm_info->machine_code[i]);
+
+    printf("count = %d\n", asm_info->count);
 
     return 0;
 }
 
 int compile_arg (struct ASM* asm_info, FILE* file_asm) 
 {
-    fscanf (file_asm, "%s", asm_info->str);
-
-    printf("\n<<< str = %s\n", asm_info->str);   
-    if (strcmp (asm_info->str, "ax") == 0)
-        asm_info->machine_code[asm_info->count] = AX;
-
-    else if (strcmp (asm_info->str, "bx") == 0)
-        asm_info->machine_code[asm_info->count] = BX;
-
-    else if (strcmp (asm_info->str, "cx") == 0)
-        asm_info->machine_code[asm_info->count] = CX;
-
-    else if (strcmp(asm_info->str, "dx") == 0)
-        asm_info->machine_code[asm_info->count] = DX;
-
-    printf(">>> str = '%s'\n", asm_info->str); 
-
+    fscanf (file_asm, " %[^\n]", asm_info->arg);
 
     int number = 0;
-    if (sscanf (asm_info->str, "%d", &number) == 1)
+
+    printf("\n\nNow I will search for + and [ to add types\n");
+    int find_bracket = (strchr (asm_info->arg, '[') != NULL);
+    int find_plus    = (strchr (asm_info->arg, '+') != NULL);
+    char buf [3] = "";
+    printf("find_bracket = %d, find_plus = %d\n", find_bracket, find_plus);
+
+    int command_type = 0;
+    if (find_bracket && find_plus)
+    {
+        printf("The first comparison worked\n");
+        sscanf (asm_info->arg, " [%1[a-d]x + %d]", buf, &number);
+        printf("    arg = '%s', buf = '%s', number = %d\n", asm_info->arg, buf, number);
+
+        command_type = 7;
+        asm_info->machine_code[asm_info->count++] = command_type;
+
+        printf("\nFIND_BRACKET && FIND_PLUS COMPLETED\n");
+        dump_mach_code (asm_info, 24);
+    }
+
+    if (find_bracket && !find_plus)
+    {
+        printf("The second comparison worked\n");
+        int res_1 = sscanf (asm_info->arg, "[%1[a-d]x]", buf);
+        int res_2 = sscanf (asm_info->arg, "[%d]", &number);
+        printf("    arg = '%s', buf = '%s', number = %d\n", asm_info->arg, buf, number);
+
+        if (res_1 == 1)
+        {
+            command_type = 6;
+        }
+
+        if (res_2 == 1)
+        {
+            command_type = 5;
+            asm_info->machine_code [asm_info->count++] = command_type;
+        }
+
+        printf ("\nFIND_BRACKET && !FIND_PLUSE COMPLETED\n");
+        dump_mach_code (asm_info, 24);
+    }
+
+    if (!find_bracket && find_plus)
+    {
+        printf("The third comparison worked\n");
+        int res = sscanf (asm_info->arg, "%1[a-d]x + %d", buf, &number);
+        //char ddlx = buf[0] + 'x';
+        printf("    arg = '%s', buf = '%s', number = %d\n", asm_info->arg, buf, number);
+
+        command_type = 3;
+        asm_info->machine_code[asm_info->count++] = command_type;
+        asm_info->machine_code[asm_info->count++] = number;
+
+        printf("\n!FIND_BRACKET && FIND_PLUS COMPLETED\n");    
+        dump_mach_code (asm_info, 24);
+    }
+
+    if (!find_bracket && !find_plus)
+    {
+        printf("The fourth comparison worked\n");
+        int res_1 = sscanf(asm_info->arg, "%1[a-d]x ", buf);
+        int res_2 = sscanf(asm_info->arg, "%d", &number);
+        printf("    arg = '%s', buf = '%s', number = %d\n", asm_info->arg, buf, number);
+
+        if (res_1 == 1) 
+        {
+            command_type = 2; // 2 // 0b00000010
+            asm_info->machine_code[asm_info->count++] = command_type;
+        }
+
+        if (res_2 == 1) 
+        {
+            command_type = 1; // 1 // 0b00000001
+            asm_info->machine_code[asm_info->count++] = command_type;
+        }    
+
+        printf("\n!FIND_BRACKET && !FIND_PLUSE COMPLETED\n");
+        dump_mach_code (asm_info, 24);
+    }
+
+    
+    //find_bracket_pluse (asm_info, cmd);
+    printf("\n\n%s(): Now I'm going to check the arguments for registers...\n", __func__);
+ 
+    //if (strcmp (asm_info->arg, "ax") == 0)
+    if (strcmp (buf, "a") == 0)
+    {
+        asm_info->machine_code[asm_info->count] = AX;
+        printf("%s(): I found the AX register (arg = %s, count = %d)\n", __func__, asm_info->arg, asm_info->count);
+
+        printf("\nadded the AX register\n");
+        dump_mach_code (asm_info, 24);
+    }
+
+    //else if (strcmp (asm_info->arg, "bx") == 0)
+    else if (strcmp (buf, "b") == 0)
+    {
+        asm_info->machine_code[asm_info->count] = BX;
+        printf("%s(): I found the BX register (arg = %s, count = %d)\n", __func__, asm_info->arg, asm_info->count);
+
+        printf("\nadded the BX register\n");
+        dump_mach_code (asm_info, 24);
+    }
+
+    //else if (strcmp (asm_info->arg, "cx") == 0)
+    else if (strcmp (buf, "c") == 0)
+    {
+        asm_info->machine_code[asm_info->count] = CX;
+        printf("%s(): I found the CX register (arg = %s, count = %d) \n", __func__, asm_info->arg, asm_info->count);
+
+        printf("\nadded the CX register\n");
+        dump_mach_code (asm_info, 24);
+    }
+
+    //else if (strcmp(asm_info->arg, "dx") == 0)
+    else if (strcmp (buf, "d") == 0)
+    {
+        asm_info->machine_code[asm_info->count] = DX;
+        printf("%s():I found the AD register (arg = %s, count = %d)\n", __func__, asm_info->arg, asm_info->count);
+
+        printf("\nadded the DX register\n");
+        dump_mach_code (asm_info, 24);
+    }
+    printf("I've finished searching for registers\n");
+    // else
+    // {
+    //     printf()
+    // }
+
+    printf("\n\nNow I'm going to look for Value\n");
+    if (sscanf (asm_info->arg, "%d", &number) == 1)
     {
         printf("    number = %d !!!\n", number);
         asm_info->machine_code[asm_info->count] = number; 
+
+        printf("value:");
+        dump_mach_code (asm_info, 24);
     }
 
-    if (strchr(asm_info->str, ':') != NULL)
+    printf("\n\nI will look for metki\n");
+    if (strchr(asm_info->arg, ':') != NULL)
     {
-        //int number = 0;
-        sscanf (asm_info->str, "%d:", &number);
-        printf("    number = %d\n", number);
+        
+        sscanf (asm_info->arg, "%d:", &number);
+        printf("%s():    number = %d\n", __func__, number);
         asm_info->machine_code[asm_info->count] = asm_info->labels[number];
-        printf("    machine_code = %d\n", asm_info->machine_code[asm_info->count]);
+        printf("%s():    machine_code = %d\n", __func__, asm_info->machine_code[asm_info->count]);
 
         if (asm_info->labels[number] == -1)
         {   
             asm_info->fixup[asm_info->fixup_index].pos_of_wrong_label_address = asm_info->count; 
             asm_info->fixup[asm_info->fixup_index].label_number_with_address  = number;
-            printf("asm_info->labels[number] = %d\n", asm_info->labels[number]);
-            printf("pos_of_wrong_label_address = %d\n", asm_info->fixup[asm_info->fixup_index].pos_of_wrong_label_address);
-            printf("label_number_with_address = %d\n",  asm_info->fixup[asm_info->fixup_index].label_number_with_address);
+            printf("%s(): asm_info->labels[number]   = %d\n", __func__, asm_info->labels[number]);
+            printf("%s(): pos_of_wrong_label_address = %d\n", __func__, asm_info->fixup[asm_info->fixup_index].pos_of_wrong_label_address);
+            printf("%s(): label_number_with_address  = %d\n", __func__, asm_info->fixup[asm_info->fixup_index].label_number_with_address);
 
-            asm_info->fixup[asm_info->fixup_index++];
+            asm_info->fixup[asm_info->fixup_index++]; // переделать 
         }
     }
 
-
-    dump_asm(asm_info, 24);
+    //dump_asm(asm_info, 24);
     asm_info->count++;
+
+    printf("\n-----------------------------------------------------------------------------------------\n");
 
     return 0;
 }
 
+int find_bracket_pluse (struct ASM* asm_info, char* cmd) // TODO переименовать
+{
+    int num = 0;
+    int find_bracket = (strchr (asm_info->arg, '[') != NULL);
+    int find_plus    = (strchr (asm_info->arg, '+') != NULL);
+    printf("%s(): find_bracket = %d and find_plus = %d", __func__, find_bracket, find_plus); 
+
+    int command_type = 0;
+    if (find_bracket && find_plus)
+    {
+        int res = sscanf(cmd, " [%1[a-d]x + %d]", asm_info->arg, &num);
+        //assert (res == 2);
+
+        command_type = 7; // 7 // 0b00000111
+        asm_info->machine_code [asm_info->count++] = command_type;
+        //asm_info->machine_code [asm_info->count++] = asm_info->arg [0] - 'a' + 1;
+
+        return 0;
+    }
+
+    if (find_bracket && !find_plus)
+    {
+        int res_1 = sscanf (cmd, "[%1[a-d]x]", asm_info->arg);
+        int res_2 = sscanf (cmd, "[%d]", &num);
+
+        if (res_1 == 1)
+        {
+            command_type = 6; // 6 // 0b00000110
+            //asm_info->machine_code[asm_info->count++] = asm_info->arg[0] - 'a' + 1;
+        }
+
+        if (res_2 == 1)
+        {
+            command_type = 5; // 5 // 0b00000101
+            asm_info->machine_code [asm_info->count++] = command_type;
+            //asm_info->machine_code [asm_info->count++] = num;
+        }
+
+        return 0;
+    }
+
+    if (!find_bracket && find_plus)
+    {
+        int res = sscanf(cmd, "%1[a-d]x + %d", asm_info->arg, &num);
+        assert(res == 2);
+
+        command_type = 3; // 3 // 0b00000011
+        asm_info->machine_code[asm_info->count++] = command_type;
+        asm_info->machine_code[asm_info->count++] = num;
+        //asm_info->machine_code[asm_info->count++] = asm_info->arg[0] - 'a' + 1;
+
+        return 0;
+    }
+
+    if (!find_bracket && !find_plus)
+    {
+        int res_1 = sscanf(cmd, "%1[a-d]x", asm_info->arg);
+        int res_2 = sscanf(cmd, "%d", &num);
+
+        if (res_1 == 1) 
+        {
+            command_type = 2; // 2 // 0b00000010
+            asm_info->machine_code[asm_info->count++] = command_type;
+            //asm_info->machine_code[(asm_info->count)++] = asm_info->arg[0] - 'a' + 1;
+        }
+
+        if (res_2 == 1) 
+        {
+            command_type = 1; // 1 // 0b00000001
+            asm_info->machine_code[asm_info->count++] = command_type;
+            //asm_info->machine_code[(asm_info->count)++] = num;
+        }
+    }
+    printf("\n-----------------------------------------------------------------------------------------\n");
+
+    return 0; // -1
+}
+
 int do_fixup (struct ASM* asm_info)
 {
-
-
     for (int i = 0; i < asm_info->fixup_index; i++)
     {
         int code_to_fixup     = asm_info->fixup[i].pos_of_wrong_label_address;
