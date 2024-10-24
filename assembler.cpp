@@ -96,7 +96,7 @@ int read_assembler_file (struct ASM* asm_info)
     {
         char cmd[100] = ""; // TODO: константу
 
-        //dump_asm(asm_info, 24);
+        dump_asm(asm_info, 24);
 
         if (fscanf (file_asm, "%s", cmd) !=  1)
             break; 
@@ -301,7 +301,7 @@ int compile_arg (struct ASM* asm_info, FILE* file_asm)
     {
         printf("The first comparison worked\n");
         sscanf (asm_info->arg, " [%1[a-d]x + %d]", buf, &number);
-        printf("    arg = '%s', buf = '%s', number = %d\n", asm_info->arg, buf, number);
+        printf("    arg = '%s', buf = '%s', number = '%d'\n", asm_info->arg, buf, number);
 
         command_type = 7;
         asm_info->machine_code[asm_info->count++] = command_type;
@@ -315,11 +315,13 @@ int compile_arg (struct ASM* asm_info, FILE* file_asm)
         printf("The second comparison worked\n");
         int res_1 = sscanf (asm_info->arg, "[%1[a-d]x]", buf);
         int res_2 = sscanf (asm_info->arg, "[%d]", &number);
+        printf("    res_1 = %d | res_2 = %d", res_1, res_2);
         printf("    arg = '%s', buf = '%s', number = %d\n", asm_info->arg, buf, number);
 
         if (res_1 == 1)
         {
             command_type = 6;
+            asm_info->machine_code [asm_info->count++] = command_type;
         }
 
         if (res_2 == 1)
@@ -377,7 +379,7 @@ int compile_arg (struct ASM* asm_info, FILE* file_asm)
     //if (strcmp (asm_info->arg, "ax") == 0)
     if (strcmp (buf, "a") == 0)
     {
-        asm_info->machine_code[asm_info->count] = AX;
+        asm_info->machine_code[asm_info->count++] = AX;
         printf("%s(): I found the AX register (arg = %s, count = %d)\n", __func__, asm_info->arg, asm_info->count);
 
         printf("\nadded the AX register\n");
@@ -387,7 +389,7 @@ int compile_arg (struct ASM* asm_info, FILE* file_asm)
     //else if (strcmp (asm_info->arg, "bx") == 0)
     else if (strcmp (buf, "b") == 0)
     {
-        asm_info->machine_code[asm_info->count] = BX;
+        asm_info->machine_code[asm_info->count++] = BX;
         printf("%s(): I found the BX register (arg = %s, count = %d)\n", __func__, asm_info->arg, asm_info->count);
 
         printf("\nadded the BX register\n");
@@ -397,7 +399,7 @@ int compile_arg (struct ASM* asm_info, FILE* file_asm)
     //else if (strcmp (asm_info->arg, "cx") == 0)
     else if (strcmp (buf, "c") == 0)
     {
-        asm_info->machine_code[asm_info->count] = CX;
+        asm_info->machine_code[asm_info->count++] = CX;
         printf("%s(): I found the CX register (arg = %s, count = %d) \n", __func__, asm_info->arg, asm_info->count);
 
         printf("\nadded the CX register\n");
@@ -407,7 +409,7 @@ int compile_arg (struct ASM* asm_info, FILE* file_asm)
     //else if (strcmp(asm_info->arg, "dx") == 0)
     else if (strcmp (buf, "d") == 0)
     {
-        asm_info->machine_code[asm_info->count] = DX;
+        asm_info->machine_code[asm_info->count++] = DX;
         printf("%s():I found the AD register (arg = %s, count = %d)\n", __func__, asm_info->arg, asm_info->count);
 
         printf("\nadded the DX register\n");
@@ -418,9 +420,10 @@ int compile_arg (struct ASM* asm_info, FILE* file_asm)
     // {
     //     printf()
     // }
-
-    printf("\n\nNow I'm going to look for Value\n");
-    if (sscanf (asm_info->arg, "%d", &number) == 1)
+// [x] если у меня есть + то число следует ожидать сразу после + и апоэтому возьмем позицию + и от нее начнем искать 5 а не от начал arg ( вставлять posion_plus)
+    printf("\n\nNow I'm going to look for Value, asm_info->arg = '%s'\n", asm_info->arg);
+    dump_mach_code (asm_info, 24);
+    if (sscanf (asm_info->arg, " [ %*[a-e]x + %d", &number) == 1) // TODO прочитать про sscanf 
     {
         printf("    number = %d !!!\n", number);
         asm_info->machine_code[asm_info->count] = number; 
@@ -432,7 +435,7 @@ int compile_arg (struct ASM* asm_info, FILE* file_asm)
     printf("\n\nI will look for metki\n");
     if (strchr(asm_info->arg, ':') != NULL)
     {
-        
+        printf("<<< ded_smesharik\n");
         sscanf (asm_info->arg, "%d:", &number);
         printf("%s():    number = %d\n", __func__, number);
         asm_info->machine_code[asm_info->count] = asm_info->labels[number];
@@ -450,10 +453,12 @@ int compile_arg (struct ASM* asm_info, FILE* file_asm)
         }
     }
 
-    do_circle (asm_info, buf);
+    //do_circle (asm_info, buf);
 
     //dump_asm(asm_info, 24);
-    asm_info->count++;
+    //asm_info->count++;
+    printf("I passed count++\n");
+    dump_mach_code (asm_info, 24);
 
     printf("\n-----------------------------------------------------------------------------------------\n");
 
@@ -648,7 +653,107 @@ pushr bx
 out 
 
 hlt 
+*/
+////////////////////////////////////////
+/*
+push 0
+pop bx
 
+6:
+    push 0
+    pop ax
+    push 0
+    pop cx
 
+    5:
 
+    push 9
+    push ax
+    sub
+    push 9
+    push ax
+    sub
+    mul
+    push 4
+    push bx
+    sub
+    push 4
+    push bx
+    sub
+    mul
+    add
+    pop cx
+    push 20
+    push cx
+
+    ja 7:
+
+    push ax
+    push bx
+    push 20
+    mul
+    add
+    pop dx
+    push 35
+    pop [dx]
+
+    7:
+
+    push 1
+    push ax
+    add
+    pop ax
+    push ax
+    push 20
+
+    ja 5:
+
+push bx
+push 1
+add
+pop bx
+
+push bx
+push 10
+
+ja 6:
+
+draw
+hlt
+*/
+
+/*
+push 0
+pop bx
+
+push 0
+pop ax ; ax = 0
+push 0
+pop cx ; cx = 0
+
+19:
+
+push 9
+push ax
+sud     ; 9 - ax
+push 9 
+push 9
+push ax
+sub     ; 9 - ax
+mull
+push 4
+push bx
+sub      ; 4 - bx
+push 4
+push bx
+sub      ; 4 - bx
+mull
+add
+pop cx
+pop 20
+push cx  ; 20 + cx
+
+push 7
+push ax
+jb 19:
 */

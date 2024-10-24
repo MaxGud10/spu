@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <math.h>
 
-#define 😂  
 
 #pragma GCC diagnostic ignored "-Wredundant-tags"
 
@@ -136,13 +135,14 @@ void interpret_command (struct Stack* stack, struct Spu* processor)
 
             case POP:
                 {
+                    printf("POP ded loh\n");
                     Stack_Elem_t a = stack_pop(stack);
 
                     // [0]
                     //int reg_num = (processor->code[processor->ip + 2] - REG_BASE) / REG_STEP;
                     int* addr = get_arg (processor);
                     *addr = (int) a;
-
+                    
                     //processor->registers[reg_num]= (int) a; 
                     //processor->ip += 2;
                 }
@@ -341,6 +341,7 @@ int filling_the_machine_code (struct Spu* processor)
 
 int* get_arg (struct Spu* processor)
 {
+    printf("I go into the get_arg function\n");
     printf("<<< ip = %d\n", processor->ip);
     int  op_code   = processor->code[processor->ip++];
     int  arg_type  = processor->code[processor->ip++];
@@ -358,6 +359,7 @@ int* get_arg (struct Spu* processor)
     printf(">>> ip = %d\n", processor->ip);
 
     (void)op_code; // наплевали, что переменная не используется 
+    printf("I'm exiting the get_arg function\n");
     return arg_addr;  
 } 
 
