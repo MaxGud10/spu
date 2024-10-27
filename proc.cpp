@@ -12,7 +12,6 @@
     #define DBG  if (0) 
 #endif
 
-
 #pragma GCC diagnostic ignored "-Wredundant-tags"
 
 #include "color.h"
@@ -38,7 +37,10 @@ enum Commands // TODO сделать верификатор и палачей
     JB            = 13, // JUMP
     NOB           = 14,
     JMP           = 15,
-    DED_SMESHARIK = 16
+    DED_SMESHARIK = 16,
+    JA            = 17,
+    CALL          = 18,
+    RET           = 19
 };
 
 enum Registers
@@ -64,6 +66,8 @@ struct Spu
     int ip;
     int* registers;
     int* ram;
+    struct Stack stack; 
+    struct Stack ret_addr_stk;
 };
 
 
@@ -83,13 +87,15 @@ int stack_is_empty (struct Stack *stack);
 
 int main(void) 
 {
-    struct Stack stack   = {};
+    // struct Stack stack        = {};
+
+    // struct Stack ret_addr_stk = {};
     
-    struct Spu processor = {};
+    struct Spu processor      = {};
 
     processor.ip = 0;
 
-    processor.code = (int*) calloc (100, sizeof(int)); // TODO: заказывать размер файла
+    processor.code = (int*) calloc (1000, sizeof(int)); // TODO: заказывать размер файла
 
     filling_the_machine_code (&processor);
 
@@ -100,29 +106,29 @@ int main(void)
     // processor.registers[4] = 40;
 
 
-    stack_ctor (&stack, 15); // TODO: числа голыми быть не должны
+    stack_ctor (processor.stack, 15); // TODO: числа голыми быть не должны
 
-    dump_spu (&stack, &processor, 35);
+    dump_spu (&stack, &processor, 60);
 
     $(processor.ram) = (int*) calloc (DEL_LINES * DEL_LINES, sizeof(int)); 
 
     interpret_command(&stack, &processor);
 // 
 
-    dump_spu (&stack, &processor, 35);
+    dump_spu (&stack, &processor, 60);
 
 
     stack_dtor(&stack); 
     return 0;
 }
 
-void interpret_command (struct Stack* stack, struct Spu* processor) 
+void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct Spu* processor) 
 {
     int ip   = 0;
     int ddlx = 1;
     while(ddlx == 1)
     {
-        //dump_spu (stack, processor, 60); 
+        //dump_spu (stack, processor, 150); 
 
         switch (processor->code[processor->ip]) 
         {
@@ -268,7 +274,7 @@ void interpret_command (struct Stack* stack, struct Spu* processor)
 
             case HLT: // halt
                 {
-                    DBG printf("hlt\n");
+                    printf("hlt\n");
                     ddlx = 0;
                 } // 
                 break;
@@ -322,16 +328,39 @@ void interpret_command (struct Stack* stack, struct Spu* processor)
                 }
                 break;
 
-//  case CMD_DRAW:
-//     for (int i = 0; i < RamSize; i++) 
-//         {
-//         printf ("%c", proc->ram[i]);
-//         if (i % 50 == 0) printf ("\n");
-//         }
-//     printf ("\n");
-//     break;
+            case JA:
+                {                                                                                                                                              
+                    DBG printf("size= %d\n", stack->size);
+                    Stack_Elem_t a = stack_pop(stack);
+                    Stack_Elem_t b = stack_pop(stack);
+
+                    DBG printf("a = %llu\n", a);
+                    DBG printf("b = %llu\n", b);
+
+                    if (a > b) 
+                        processor->ip = processor->code[processor->ip + 1];
+                    
+                    else
+                        processor->ip += 2;
+                }
+                break;
+
+            case CALL:
+            {
+                stack_push (ret_addr_stk, );
+            }
+            break;
+
+            case RET:
+            {
+                Stack_Elem_t addr = stack_pop (ret_addr_stk);
+                //stack_pop (ret_addr_stack);
+
+                processor->ip = addr;
+            }
+
             default:
-                printf("ERROR: Invalid command %d\n", processor->code[processor->ip]);
+                printf("ERROR: Invalid command [%d]\n", processor->code[processor->ip]);
                 ddlx = 0;
                 break;
         }                                                                                              
@@ -346,7 +375,7 @@ int filling_the_machine_code (struct Spu* processor)
         printf("\nFile with code_machine is correct\n");
     }
 
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < 1000; i++)
         fscanf (file, "%d", &processor->code[i]);
 
     fclose (file);
@@ -385,9 +414,11 @@ int* get_arg (struct Spu* processor)
                         //processor->ip++;                          
                       }
 
-    if (arg_type & 4) { arg_addr = &processor->ram[arg_value]; // TODO регистр, arg_addr, 
+    if (arg_type & 4) { assert( 0 <= arg_value and arg_value <= DEL_LINES * DEL_LINES );
+                        arg_addr = &processor->ram[arg_value]; // TODO регистр, arg_addr, 
                         DBG printf("arg_type and 4:\n arg_addr = %p = &processor->ram [arg_value = %p] \n", 
-                                                  arg_addr, &processor->ram [arg_value] );} // pop ax
+                                                  arg_addr, &processor->ram [arg_value] );
+                      } // pop ax
                                                                                            // pop [ax + 2] 
     DBG printf(">>> ip = %d\n", processor->ip);
 
