@@ -16,9 +16,9 @@
 
 #include "color.h"
 
-typedef unsigned long long Stack_Elem_t;
+typedef int Stack_Elem_t; // typedef unsigned long long Stack_Elem_t;
 const int DEL_LINES = 10;
-// int const MAX
+
 
 enum Commands // TODO сделать верификатор и палачей 
 {
@@ -40,7 +40,12 @@ enum Commands // TODO сделать верификатор и палачей
     DED_SMESHARIK = 16,
     JA            = 17,
     CALL          = 18,
-    RET           = 19
+    RET           = 19,
+    CMD_IN        = 20,
+    JNE           = 21,
+    JE            = 22,
+    JBE           = 23,
+    JAE           = 24
 };
 
 enum Registers
@@ -71,8 +76,8 @@ struct Spu
 };
 
 
-void interpret_command (struct Stack* stack, struct Spu* processor);
-void dump_spu          (struct Stack* stack, struct Spu* processor, size_t size);
+void interpret_command (struct Spu* processor) ;
+void dump_spu (struct Spu* processor, size_t size);
 //void dump_spu          (struct Stack* stack, int ip, int code[], size_t size);
 
 int filling_the_machine_code (struct Spu* processor);
@@ -99,36 +104,37 @@ int main(void)
 
     filling_the_machine_code (&processor);
 
-    processor.registers = (int*) calloc (150, sizeof(int));
+    processor.registers = (int*) calloc (300, sizeof(int));
     // processor.registers[1] = 10; // для примера 
     // processor.registers[2] = 20;
     // processor.registers[3] = 30;
     // processor.registers[4] = 40;
 
 
-    stack_ctor (processor.stack, 15); // TODO: числа голыми быть не должны
+    stack_ctor (&processor.stack, 300); // TODO: числа голыми быть не должны
+    stack_ctor (&processor.ret_addr_stk, 300);
 
-    dump_spu (&stack, &processor, 60);
+    dump_spu (&processor, 200);
 
     $(processor.ram) = (int*) calloc (DEL_LINES * DEL_LINES, sizeof(int)); 
 
-    interpret_command(&stack, &processor);
+    interpret_command(&processor);
 // 
 
-    dump_spu (&stack, &processor, 60);
+    dump_spu (&processor, 200);
 
 
-    stack_dtor(&stack); 
+    stack_dtor(&processor.stack); 
     return 0;
 }
 
-void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct Spu* processor) 
+void interpret_command (struct Spu* processor) 
 {
     int ip   = 0;
     int ddlx = 1;
     while(ddlx == 1)
     {
-        //dump_spu (stack, processor, 150); 
+        //dump_spu (processor, 50); 
 
         switch (processor->code[processor->ip]) 
         {
@@ -136,8 +142,8 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
                 {
                     DBG printf(">>> ip = %d, code[id] = %d, code[ip+1] = %d: I am going to push\n", ip, processor->code[processor->ip], processor->code[processor->ip + 1]);
                     //int ded_loh = get_arg_pop_new (processor);
-                    stack_push (stack, *get_arg (processor)); // processor->code[processor->ip + 1]
-                    DBG printf("<<< stack->data[stack->size - 1] = %llu, size = %d\n\n", stack->data[stack->size - 1], stack->size);
+                    stack_push (&processor->stack, *get_arg (processor)); // processor->code[processor->ip + 1]
+                    DBG printf("<<< stack->data[stack->size - 1] = %llu, size = %d\n\n", processor->stack.data[processor->stack.size - 1], processor->stack.size);
                     //processor->ip += 2;
                 }
                 break; 
@@ -145,7 +151,7 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
             case POP:
                 {
                     DBG printf("POP is done and   PROCESSOR->CODE[PROCESSOR->IP] = %d\n",  processor->code[processor->ip]);
-                    Stack_Elem_t a = stack_pop(stack);
+                    Stack_Elem_t a = stack_pop(&processor->stack);
 
                     // [0]
                     //int reg_num = (processor->code[processor->ip + 2] - REG_BASE) / REG_STEP;
@@ -166,14 +172,12 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
 
             case ADD: // add
                 {
-                    Stack_Elem_t a = stack_pop(stack);
-                    Stack_Elem_t b = stack_pop(stack);
+                    Stack_Elem_t a = stack_pop(&processor->stack);
+                    Stack_Elem_t b = stack_pop(&processor->stack);
 
                     DBG printf(">>> ip = %d, code[id] = %d: I'm going to add: a = %llu | b = %llu\n", ip, processor->code[processor->ip], a, b);
 
-                    stack_push(stack, a + b);
-
-                    DBG printf("<<< stack->data[stack->size - 1] = %llu, size = %d, a + b = %llu + %llu = %llu\n\n", stack->data[stack->size - 1], stack->size, a, b, a + b);
+                    stack_push(&processor->stack, a + b);
 
                     processor->ip += 1;
                     DBG printf("    NEXT: ip = %d\n", ip);
@@ -183,14 +187,14 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
 
                 case SUB: // sub
                 {
-                    Stack_Elem_t a = stack_pop(stack);
-                    Stack_Elem_t b = stack_pop(stack);
+                    Stack_Elem_t a = stack_pop(&processor->stack);
+                    Stack_Elem_t b = stack_pop(&processor->stack);
 
                     DBG printf(">>> ip = %d, code[id] = %d: I'm going to sub: a = %llu | b = %llu\n", ip, processor->code[processor->ip], a, b);
 
-                    stack_push(stack, b - a);
+                    stack_push(&processor->stack, b - a);
 
-                    DBG printf("<<< stack->data[stack->size - 1] = %llu, size = %d, a - b = %llu - %llu = %llu\n\n", stack->data[stack->size - 1], stack->size, a, b, a - b);
+                    DBG printf("<<< stack->data[stack->size - 1] = %llu, size = %d, a - b = %llu - %llu = %llu\n\n", processor->stack.data[processor->stack.size - 1], processor->stack.size, a, b, a - b);
 
                     processor->ip +=1;
                     DBG printf("ip = %d", ip);
@@ -200,10 +204,10 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
 
             case MULL: // mull
             {
-                Stack_Elem_t a = stack_pop(stack);
-                Stack_Elem_t b = stack_pop(stack);
+                Stack_Elem_t a = stack_pop(&processor->stack);
+                Stack_Elem_t b = stack_pop(&processor->stack);
 
-                stack_push(stack, a * b);
+                stack_push(&processor->stack, a * b);
 
                 processor->ip += 1;
             }
@@ -211,8 +215,8 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
 
             case DIV: // div
             {
-                Stack_Elem_t a = stack_pop(stack);
-                Stack_Elem_t b = stack_pop(stack);
+                Stack_Elem_t a = stack_pop(&processor->stack);
+                Stack_Elem_t b = stack_pop(&processor->stack);
 
                 if (a == 0)
                 {
@@ -221,7 +225,7 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
                 }
 
                 else
-                    stack_push (stack, b / a);
+                    stack_push (&processor->stack, b / a);
 
                 processor->ip +=1;
             }
@@ -229,7 +233,7 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
 
             case SQRT: // sqrt
             {
-                Stack_Elem_t a = stack_pop (stack);
+                Stack_Elem_t a = stack_pop (&processor->stack);
                 // if (a < 0) // [x] a - всегда беззнаковый
                 // {
                 //     printf ("ERROR: Square root of negative number\n");
@@ -237,7 +241,7 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
                 // }
 
                 //else
-                stack_push (stack, (Stack_Elem_t)sqrt(a));
+                stack_push (&processor->stack, (Stack_Elem_t)sqrt(a));
 
                 processor->ip +=1;
             }
@@ -245,26 +249,26 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
 
             case SIN: // sin
             {
-                Stack_Elem_t a = stack_pop (stack);
-                stack_push (stack, (Stack_Elem_t)sin(a));
+                Stack_Elem_t a = stack_pop (&processor->stack);
+                stack_push (&processor->stack, (Stack_Elem_t)sin(a));
                 processor->ip += 1;
             }
             break;
 
             case COS: // cos
             {
-                Stack_Elem_t a = stack_pop (stack);
-                stack_push (stack, (Stack_Elem_t)cos(a));
+                Stack_Elem_t a = stack_pop (&processor->stack);
+                stack_push (&processor->stack, (Stack_Elem_t)cos(a));
                 processor->ip +=1;
             }
             break;
 
             case OUTPUT: // output
                 {
-                    $(stack->size);
-                    $(stack->data[0]);
+                    $(&processor->stack.size);
+                    $(&processor->stack.data[0]);
                     
-                    Stack_Elem_t result = stack_pop(stack);
+                    Stack_Elem_t result = stack_pop(&processor->stack);
                     printf("out %llu\n", result);
                     printf("%lg\n", (double)result);
                     $(result);
@@ -281,9 +285,9 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
 
             case JB: // [x] - правильно ли ?
                 {                                                                                                                                              
-                    DBG printf("size= %d\n", stack->size);
-                    Stack_Elem_t a = stack_pop(stack);
-                    Stack_Elem_t b = stack_pop(stack);
+                    DBG printf("size = %d\n", processor->stack.size);
+                    Stack_Elem_t a = stack_pop(&processor->stack);
+                    Stack_Elem_t b = stack_pop(&processor->stack);
 
                     DBG printf("a = %llu\n", a);
                     DBG printf("b = %llu\n", b);
@@ -299,7 +303,7 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
             case PUSHR:
                 {
                     int reg_num = (processor->code[processor->ip + 1] - REG_BASE) / REG_STEP;
-                    stack_push (stack, processor->registers[reg_num]);
+                    stack_push (&processor->stack, processor->registers[reg_num]);
 
                     processor->ip += 2;
                 }
@@ -330,9 +334,9 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
 
             case JA:
                 {                                                                                                                                              
-                    DBG printf("size= %d\n", stack->size);
-                    Stack_Elem_t a = stack_pop(stack);
-                    Stack_Elem_t b = stack_pop(stack);
+                    DBG printf("size = %d\n", processor->stack.size);
+                    Stack_Elem_t a = stack_pop(&processor->stack);
+                    Stack_Elem_t b = stack_pop(&processor->stack);
 
                     DBG printf("a = %llu\n", a);
                     DBG printf("b = %llu\n", b);
@@ -347,17 +351,100 @@ void interpret_command (struct Stack* stack, struct Stack* ret_addr_stk, struct 
 
             case CALL:
             {
-                stack_push (ret_addr_stk, );
+                DBG printf("\n>>> processor->ret_addr_stk.size = [%d]\n",processor->ret_addr_stk.size);
+                stack_push (&processor->ret_addr_stk, processor->ip + 2);
+                DBG printf("\n<<< processor->ret_addr_stk.size = [%d], \n",processor->ret_addr_stk.size);
+
+                processor->ip = processor->code[processor->ip + 1];
             }
             break;
 
             case RET:
             {
-                Stack_Elem_t addr = stack_pop (ret_addr_stk);
+                Stack_Elem_t addr = stack_pop (&processor->ret_addr_stk);
                 //stack_pop (ret_addr_stack);
 
-                processor->ip = addr;
+                processor->ip = (int) addr;
             }
+            break;
+
+            case CMD_IN:
+            {
+                int num  = 0;
+                scanf("%d", &num);
+
+                stack_push (&processor->stack, num);
+
+                processor->ip += 1; 
+            }
+            break;
+
+            case JNE:
+            {
+                DBG printf("size = %d\n", processor->stack.size);
+                Stack_Elem_t a = stack_pop(&processor->stack);
+                Stack_Elem_t b = stack_pop(&processor->stack);
+
+                DBG printf("a = %llu\n", a);
+                DBG printf("b = %llu\n", b);
+
+                if (a != b)
+                    processor->ip = processor->code[processor->ip + 1];
+                else
+                    processor->ip += 2;
+            }
+            break;
+
+
+            case JE:
+            {
+                 DBG printf("size = %d\n", processor->stack.size);
+                Stack_Elem_t a = stack_pop(&processor->stack);
+                Stack_Elem_t b = stack_pop(&processor->stack);
+
+                DBG printf("a = %llu\n", a);
+                DBG printf("b = %llu\n", b);
+
+                if (a == b)
+                    processor->ip = processor->code[processor->ip + 1];
+                else
+                    processor->ip += 2;
+            }
+            break;
+
+            
+            case JBE:
+            {
+                 DBG printf("size = %d\n", processor->stack.size);
+                Stack_Elem_t a = stack_pop(&processor->stack);
+                Stack_Elem_t b = stack_pop(&processor->stack);
+
+                DBG printf("a = %llu\n", a);
+                DBG printf("b = %llu\n", b);
+
+                if (a <= b)
+                    processor->ip = processor->code[processor->ip + 1];
+                else
+                    processor->ip += 2;
+            }
+            break;
+
+            
+            case JAE:
+            {
+                 DBG printf("size = %d\n", processor->stack.size);
+                Stack_Elem_t a = stack_pop(&processor->stack);
+                Stack_Elem_t b = stack_pop(&processor->stack);
+
+                DBG printf("a = %llu\n", a);
+                DBG printf("b = %llu\n", b);
+
+                if (a >= b)
+                    processor->ip = processor->code[processor->ip + 1];
+                else
+                    processor->ip += 2;
+            }
+            break;
 
             default:
                 printf("ERROR: Invalid command [%d]\n", processor->code[processor->ip]);
@@ -428,7 +515,7 @@ int* get_arg (struct Spu* processor)
     return arg_addr;  
 } 
 
-void dump_spu (struct Stack* stack, struct Spu* processor, size_t size)
+void dump_spu (struct Spu* processor, size_t size)
 {
     printf(RED"\n----------------------------------------------------------------------------------------------------------\n");
 
@@ -464,10 +551,13 @@ void dump_spu (struct Stack* stack, struct Spu* processor, size_t size)
     else
         printf("NULL ram");
 
-    printf("\n\nstack (size %d): ", stack->size);
-    for (int i = 0; i < stack->size; i++) // int i 
-        printf(CYAN "[%d]=" WHITE "%llu ", i, stack->data[i]);
+    printf("\n\nstack (size %d): ", processor->stack.size);
+    for (int i = 0; i < processor->stack.size; i++) // int i 
+        printf(CYAN "[%d]=" WHITE "%llu ", i, processor->stack.data[i]);
 
+    printf("\n\nret_addr_stk (sizw %d): ", processor->ret_addr_stk.size);
+    for (int i = 0; i < processor->ret_addr_stk.size; i++)
+        printf(MAGENTA"[%d]="WHITE "%llu ", i, processor->ret_addr_stk.data[i]);
 
     printf(RED "\n----------------------------------------------------------------------------------------------------------" RESET);
 

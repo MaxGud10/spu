@@ -14,12 +14,13 @@ out
 hlt
 
 
+
 2:         ; bx + c = 0 
 push bx
 push 0
 jne 4:     ; b != 0
 
-pop cx     ; a = 0, b = 0 , c = x
+pop cx    ; ; a = 0, b = 0 , c = x
 out 
 hlt       
 
@@ -31,13 +32,16 @@ je 13:     ; c == 0
 push cx
 push -1    ; -c
 mull
+pop cx 
 push bx
-div        ; -c / b 
+push cx 
+div        ; -c / b
+pop cx     
 out
 hlt
 
 13:       ; a = 0, b = x, c = 0
-push bx  
+pop bx  
 out 
 hlt
 
@@ -46,6 +50,7 @@ hlt
 push bx
 push 0
 je 17:     ; bx == 0 (ax * x ^ 2 + cx)
+
 
 
 push bx 
@@ -57,13 +62,12 @@ push cx
 mull
 mull
 sub         ; b ^ 2 - 4 * a * c
-pop dx
 push 0
 je 6:       ; discriminant == 0
 ja 7:       ; discriminant > 0
 push 0      ; no root
 out
-ret
+hlt
 
 17:         ; bx == 0 (ax * x ^ 2 + cx)
 push cx 
@@ -75,12 +79,13 @@ push cx
 mull 
 push ax
 div
-sqrt          ; x = sqrt (-(cx) / (ax)) 
+sqrt 
+pop dx      ; x = sqrt (-(cx) / (ax))
 out
 hlt
 
 31:        ; bx = 0, cx = 0
-push 0
+pop ax 
 out
 hlt
 
@@ -93,37 +98,36 @@ push bx
 mull
 push 2
 push ax
-mull
-div        ; x1 = x2 = -b / (2 * a)  
+div        ; x1 = x2 = -b / (2 * a)
+pop dx   
 out 
 hlt 
 
-7:         ; discriminant > 0 (-b - sqrt / 2a)
+7:         ; discriminant > 0
 push 2
 out
 
-
+push 2
+push ax
+mull
 push -1
 push bx    ; -b
 mull
 push dx  
 sqrt 
-sub         ; -b - sqrt d 
-push 2
-push ax 
-mull
+sub
 div 
 out       ; x1
 
+push 2
+push ax
+mull
 push -1
 push bx    ; -b
 mull
 push dx  
 sqrt 
 add
-push 2
-push ax
-mull
 div        ; x2
 out 
-hlt
+ret
